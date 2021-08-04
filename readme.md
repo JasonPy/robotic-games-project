@@ -6,4 +6,4 @@ Clone this package into your `catkin_ws/src` folder. Then execute `catkin_make`.
 If now launch files are available yet simply run `rosrun mouse mouse_nav`.
 
 ## Configuration of catch/launch/map_1.launch
-Replace <!-- <include file="$(find group_x)/launch/team_mouse.launch"/> --> by <include file="$(find mouse)/launch/team_mouse.launch"/>
+Replace `<!-- <include file="$(find group_x)/launch/team_mouse.launch"/> -->` by `<include file="$(find mouse)/launch/team_mouse.launch"/>`
