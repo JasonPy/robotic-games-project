@@ -13,6 +13,7 @@ from tf.transformations import euler_from_quaternion
 # from util import *
 
 rgt_helper = rgt.rogata_helper()
+game_state = np.zeros(8)  # game_state is used for building the tree/minimax-algorithm
 
 
 class Mouse:
@@ -26,6 +27,18 @@ class Mouse:
         self.target_cheese = 0
         self.position = 0
         self.speed = 0.2  # have to determine that?
+
+        # parameters for the tree planning
+        self.choices = 3
+        self.depth = 5  # important: depth needs to be odd - see exercise sheet
+        self.game_state = np.zeros(8)
+        # game_state consists of
+        # [x_cat, y_cat, rot_cat, x_mouse, y_mouse, rot_mouse, reward_for_player, pos_in_tree]
+
+        # TODO discretize decision space correctly/in such a way that it makes sense
+        self.strategy_choices_self = np.linspace(-0.8, 0.8, self.choices)  # discredited  decision space
+        self.strategy_choices_cat = np.linspace(-2.84, 2.84, self.choices)  # discredited  decision space
+        self.speed_cat = 0.4  # we don't know that
 
         # callback for mouse and cat position
         rospy.Subscriber("mouse_obj/odom", Odometry, self.odom_mouse_callback)
@@ -41,13 +54,16 @@ class Mouse:
 
             if self.cat_is_in_near_mouse():
                 # if cat enters mouse cell -> flee using minimax-approach
-                print("flee from cat")
+                self.use_minimax_strategy()
+                print("Minimax executed since cat is close")
+                # TODO: integrate collision avoidance into minimax or combine it afterwards
 
             else:
                 # determine next best move in the 'absence' of the cat -> optimal homing + collision avoidance,
                 # then: think of what the cat might be doing (while the cat is also thinking about what we might
                 # be doing)
-                print("go primarily to the cheese, but keep the cat in mind")
+                X=1
+                #print("go primarily to the cheese, but keep the cat in mind")
                 # homing/navigation/collision avoidance
 
         # why are we using a loop instead of rospy.spin() -- what is that for?
@@ -55,6 +71,70 @@ class Mouse:
         # During that loop it will process any events that occur, such as data received on a topic or a timer
         # triggering, when they occur but otherwise it will sleep. You should use spin() when your node doesn't do
         # anything outside of its callbacks. -> we don't need rospy.spin() but the while loop
+
+    # TODO: important: these functions are taken from the sample solution of ex07-> have to be checked!
+    def use_minimax_strategy(self):
+        scoreTree = [None] * int((self.choices ** (self.depth + 1) - 1) / 2)  # create empty tree
+        scoreTree[0] = copy.deepcopy(game_state)
+        # print(f"tree is being build with {int((self.choices ** (self.depth + 1) - 1) / 2)} nodes")
+        scoreTree = self.buildTree(0, scoreTree,
+                                   self.depth)  # self.depth-1 instead of self.depth? don't think sp
+        # print(f"scoreTree is built: {scoreTree}")
+        best_choice = minimax(0, True, scoreTree, self.depth, self.choices)  # self.depth - 1? don't think so
+        # print(f"best choice before while loop {best_choice}")
+        while best_choice[7] > self.choices:
+            best_choice[7] = int(best_choice[7] / self.choices)
+
+        # print (best_choice)
+
+        out = Twist()
+        out.linear.x = self.speed
+        out.angular.z = self.strategy_choices_self[int(best_choice[7] - 1)]
+
+        print(f"out {out}")
+
+        self.pub.publish(out)
+
+    def buildTree(self, nodeIndex, scoreTree, depth):
+        # TODO notes on testing: building works so far, update functions/reward etc have to be checked
+        # a few explanations to how the tree is build/structured:
+        # since we have n choices and a depth of m we have int((self.choices ** (self.depth + 1) - 1) / 2) nodes
+        # every node consists of an np-array which has the same shape as the game_state
+        # numbers run within a level from left to right
+        # (example: 3 choices and 3 levels ~ 0 = current game_state (level 0 of the tree), 1,2,3 (nodes in level 1),
+        # 4,5,6,7,8,9,10,11,12 (nodes in level 2) and 13-39 (nodes in level 3)
+        if depth == 0:
+            return scoreTree
+        for i in range(0, self.choices):
+
+            if depth % 2 == 1:  # mouse case
+                scoreTree[nodeIndex * self.choices + i + 1] = update_game_state(scoreTree[nodeIndex],
+                                                                                self.strategy_choices_self[i],
+                                                                                self.speed,
+                                                                                True)
+                # important: changed reward(scoreTree[...+ i]) to reward(scoreTree[...+ i + 1]) since we want to
+                # calculate the reward for the new state
+                scoreTree[nodeIndex * self.choices + i + 1][6] = reward(scoreTree[nodeIndex * self.choices + i + 1],
+                                                                        True)
+
+                scoreTree[nodeIndex * self.choices + i + 1][7] = nodeIndex * self.choices + i + 1
+
+                # TODO: idea ~ we cannot walk in "every" direction due to collisions -> pruning or: utility combine
+                # -> don't have to investigate these branches anymore
+
+            else:  # cat case
+                scoreTree[nodeIndex * self.choices + i + 1] = update_game_state(scoreTree[nodeIndex],
+                                                                                self.strategy_choices_cat[i],
+                                                                                self.speed_cat,
+                                                                                False)
+                # important: changed reward(scoreTree[...+ i]) to reward(scoreTree[...+ i + 1]) since we want to
+                # calculate the reward for the new state
+                scoreTree[nodeIndex * self.choices + i + 1][6] = reward(scoreTree[nodeIndex * self.choices + i + 1],
+                                                                        False)
+                scoreTree[nodeIndex * self.choices + i + 1][7] = nodeIndex * self.choices + i + 1
+            # print ("i: ", i, " depth: ", depth, " pos: ", (nodeIndex*self.choices+i+1), " scoreTree: ", scoreTree)
+            scoreTree = self.buildTree(nodeIndex * self.choices + i + 1, scoreTree, depth - 1)
+        return scoreTree
 
     # TODO: update the target cheese position (nearest cheese for example)
     def update_target_cheese(self):
@@ -97,6 +177,9 @@ class Mouse:
         This function checks if the cat is inside the mouse cell.
         :return:
         """
+        # replace that with more sophisticated approach
+        if np.sqrt((game_state[0] - game_state[3]) ** 2 + (game_state[1] - game_state[4]) ** 2) < 300:
+            return True
 
         return False
 
@@ -110,6 +193,9 @@ class Mouse:
         y_pos = data.pose.pose.position.y
 
         self.position = np.array([x_pos, y_pos])
+        game_state[0] = x_pos
+        game_state[1] = y_pos
+        game_state[2] = orientation
 
         # self.update_target_cheese() ?
 
@@ -126,7 +212,9 @@ class Mouse:
         y_pos = data.pose.pose.position.y
 
         self.position = np.array([x_pos, y_pos])
-
+        game_state[3] = x_pos
+        game_state[4] = y_pos
+        game_state[5] = orientation
         # self.update_target_cheese() ?
 
     def cmd_vel_mouse_callback(self, data):
@@ -168,6 +256,64 @@ def update_state(state, omega, speed, iteration):
         current_state[2] = changed_pos[2]
 
     return current_state
+
+
+# TODO: rethink reward calculation
+def reward(game_state, is_mouse):
+    """
+    This function assigns a reward to a game_state for the minimax-algorithm
+    :param state: game_state
+    :param is_mouse: boolean which indicates for which player the reward is determined
+    :return: reward
+    """
+    # TODO: used reward function of the sample solution -> check that (is that really a good idea?)
+    distance = np.sqrt((game_state[0] - game_state[3]) ** 2 + (game_state[1] - game_state[4]) ** 2)
+    alpha = game_state[2] - game_state[5]
+    beta = np.arctan2((game_state[1] - game_state[4]), (game_state[0] - game_state[3])) - game_state[5]
+    # print(alpha, " ", beta)
+    value = distance * (np.cos(alpha / 2) + np.sin(beta / 2))
+
+    return value
+
+
+def update_game_state(game_state, omega, speed, is_mouse):
+    """
+    This function updates the game state for the tree
+    :return:
+    """
+    current_state = copy.deepcopy(game_state)
+    if not is_mouse:  # cat case
+        # call update_state function with params for the cat
+        current_state[3:6] = update_state(current_state[3:6], omega, speed, 10)
+        # the rest of the game_state stays the same
+
+    else:  # mouse case
+        # call update_state function with params for the mouse
+        current_state[0:3] = update_state(current_state[0:3], omega, speed, 10)
+
+    return current_state
+
+
+def minimax(nodeIndex, maximize, scoreTree, depth, choices):
+    # base case : targetDepth reached
+
+    # print(f"Minimax called with nodeIndex {nodeIndex}, maximize = {maximize}, depth =  {depth} and 2 choices")
+
+    if depth == 0:
+        return scoreTree[nodeIndex]
+
+    if maximize:
+        value = [0, 0, 0, 0, 0, 0, -np.inf]
+        for i in range(0, choices):
+            if value[6] < minimax(nodeIndex * choices + i + 1, False, scoreTree, depth - 1, choices)[6]:
+                value = minimax(nodeIndex * choices + i + 1, False, scoreTree, depth - 1, choices)
+        return value
+    else:  # minimum
+        value = [0, 0, 0, 0, 0, 0, np.inf]
+        for i in range(0, choices):
+            if value[6] > minimax(nodeIndex * choices + i + 1, False, scoreTree, depth - 1, choices)[6]:
+                value = minimax(nodeIndex * choices + i + 1, False, scoreTree, depth - 1, choices)
+        return value
 
 
 if __name__ == "__main__":
