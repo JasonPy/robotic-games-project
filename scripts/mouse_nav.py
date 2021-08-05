@@ -25,7 +25,7 @@ class Mouse:
         self.cheese_positions = np.zeros(shape=(self.cheese_amount, 2))
         # x,y pos of target cheese and mouse
         self.target_cheese = 0
-        self.position = 0
+        self.position = np.zeros(2)
         self.speed = 0.2  # have to determine that?
 
         # parameters for the tree planning
@@ -211,7 +211,6 @@ class Mouse:
         x_pos = data.pose.pose.position.x
         y_pos = data.pose.pose.position.y
 
-        self.position = np.array([x_pos, y_pos])
         game_state[3] = x_pos
         game_state[4] = y_pos
         game_state[5] = orientation
@@ -228,13 +227,12 @@ class Mouse:
 
 # TODO: outsource the following functions into util -> looked in moodle but didn't work
 
-def update_state(state, omega, speed, iteration):
+def update_state(state, omega, speed, iterations):
     """
     This function updates the state using the Euler method (see ex04)
     state = [x,y,z]
     :return:
     """
-    iterations = 10
     dt = 1.0 / iterations
     current_state = copy.deepcopy(state)
 
