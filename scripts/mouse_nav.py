@@ -5,8 +5,11 @@ import rospy
 import numpy as np
 import copy
 import rogata_library.rogata_library as rgt
+import math
+
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
+from sensor_msgs.msg import LaserScan
 from tf.transformations import euler_from_quaternion
 
 # TODO: load functions from util file (see issue and comments down below)
@@ -35,6 +38,11 @@ class Mouse:
         # game_state consists of
         # [x_cat, y_cat, rot_cat, x_mouse, y_mouse, rot_mouse, reward_for_player, pos_in_tree]
 
+        # attributes for collision avoidance
+        self.omega_ca = 0
+        self.angles = np.array([])
+        self.ranges = np.array([])
+
         # TODO discretize decision space correctly/in such a way that it makes sense
         self.strategy_choices_self = np.linspace(-0.8, 0.8, self.choices)  # discredited  decision space
         self.strategy_choices_cat = np.linspace(-2.84, 2.84, self.choices)  # discredited  decision space
@@ -44,6 +52,8 @@ class Mouse:
         rospy.Subscriber("mouse_obj/odom", Odometry, self.odom_mouse_callback)
         rospy.Subscriber("cat_obj/odom", Odometry, self.odom_cat_callback)
         rospy.Subscriber("mouse/cmd_vel", Twist, self.cmd_vel_mouse_callback)  # fake subscriber
+        rospy.Subscriber("mouse/ca_cmd_vel", Twist, self.ca_cmd_vel_callback)  # collision_avoidance
+        rospy.Subscriber("mouse/scan", LaserScan, self.scan_callback)
 
         # publisher for mouse velocities
         self.pub = rospy.Publisher("mouse/cmd_vel", Twist, queue_size=10)  # or mouse_cmd_vel?
@@ -54,16 +64,22 @@ class Mouse:
 
             if self.cat_is_in_near_mouse():
                 # if cat enters mouse cell -> flee using minimax-approach
-                self.use_minimax_strategy()
                 print("Minimax executed since cat is close")
-                # TODO: integrate collision avoidance into minimax or combine it afterwards
+                omega_minimax = self.get_minimax_omega()
+
+                # combine omega of minimax with collision avoidance
+                omega_combined = self.combine_minimax_and_ca(omega_minimax)
+                output = Twist()
+                output.linear.x = self.speed  # fixed, we only consider the angular velocity
+                output.angular.z = omega_minimax
+                self.pub.publish(output)
+                # TODO: try 2nd approach: integrate collision avoidance into minimax (pruning)
 
             else:
                 # determine next best move in the 'absence' of the cat -> optimal homing + collision avoidance,
                 # then: think of what the cat might be doing (while the cat is also thinking about what we might
                 # be doing)
-                X=1
-                #print("go primarily to the cheese, but keep the cat in mind")
+                print("go to the cheese")
                 # homing/navigation/collision avoidance
 
         # why are we using a loop instead of rospy.spin() -- what is that for?
@@ -73,7 +89,7 @@ class Mouse:
         # anything outside of its callbacks. -> we don't need rospy.spin() but the while loop
 
     # TODO: important: these functions are taken from the sample solution of ex07-> have to be checked!
-    def use_minimax_strategy(self):
+    def get_minimax_omega(self):
         scoreTree = [None] * int((self.choices ** (self.depth + 1) - 1) / 2)  # create empty tree
         scoreTree[0] = copy.deepcopy(game_state)
         # print(f"tree is being build with {int((self.choices ** (self.depth + 1) - 1) / 2)} nodes")
@@ -87,13 +103,7 @@ class Mouse:
 
         # print (best_choice)
 
-        out = Twist()
-        out.linear.x = self.speed
-        out.angular.z = self.strategy_choices_self[int(best_choice[7] - 1)]
-
-        print(f"out {out}")
-
-        self.pub.publish(out)
+        return self.strategy_choices_self[int(best_choice[7] - 1)]
 
     def buildTree(self, nodeIndex, scoreTree, depth):
         # TODO notes on testing: building works so far, update functions/reward etc have to be checked
@@ -216,6 +226,9 @@ class Mouse:
         game_state[5] = orientation
         # self.update_target_cheese() ?
 
+    def ca_cmd_vel_callback(self, msg):  # new command from collision avoidance node
+        self.omega_ca = msg.angular.z
+
     def cmd_vel_mouse_callback(self, data):
         """
         Fake callback
@@ -223,6 +236,27 @@ class Mouse:
         :return:
         """
         # print("cmd callback")
+
+    def scan_callback(self, msg):
+        ranges = msg.ranges
+        ranges = np.array(ranges)
+        angle_min = msg.angle_min  # start angle of the scan [rad]
+        angle_max = msg.angle_max  # end angle of the scan [rad]
+        angle_increment = msg.angle_increment  # angular distance between measurements [rad]
+        angles = np.arange(angle_min, angle_max + angle_increment, angle_increment)
+
+        self.angles = angles[np.isfinite(ranges)]  # delete 'inf'
+        self.ranges = ranges[np.isfinite(ranges)]
+
+    def combine_minimax_and_ca(self, omega_minimax):
+        # TODO: try 2nd variant with utility instead of prevail
+        # normalize omegas to [-1, 1]
+        norm_omega_ca = normalize(self.omega_ca)
+        norm_omega_minimax = normalize(omega_minimax)
+
+        gate = PREVAIL(norm_omega_minimax, norm_omega_ca)
+        omega = gate * np.pi  # get back angular vel [rad]
+        return omega
 
 
 # TODO: outsource the following functions into util -> looked in moodle but didn't work
@@ -312,6 +346,22 @@ def minimax(nodeIndex, maximize, scoreTree, depth, choices):
             if value[6] > minimax(nodeIndex * choices + i + 1, False, scoreTree, depth - 1, choices)[6]:
                 value = minimax(nodeIndex * choices + i + 1, False, scoreTree, depth - 1, choices)
         return value
+
+
+def normalize(omega):
+    """
+    normalize to range [-1, 1] given an angle of omega [-pi, pi]
+    """
+    omega = np.clip(omega, a_min=-np.pi, a_max=np.pi)
+    return (omega + np.pi) / (2 * np.pi) * 2 - 1
+
+
+def OR(x, y):
+    return x + y - x * y * np.tanh(x + y) / np.tanh(2)
+
+
+def PREVAIL(x, y):
+    return OR(x, OR(x, y))
 
 
 if __name__ == "__main__":
