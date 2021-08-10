@@ -1,10 +1,7 @@
 #! /usr/bin/env python3
 # license removed for brevity
 
-import rospy
 import numpy as np
-import rogata_library.rogata_library as rgt
-import rospkg
 
 
 class Cheese:
@@ -15,7 +12,7 @@ class Cheese:
         self.score = 0
 
     def evaluate(self, mouse_position, cat_position):
-        """Evaluate Chese based on mouse_position, cat_position
+        """Evaluate Cheese based on mouse_position, cat_position
 
         Args:
             mouse_position (np.array): x and y coordinates of mouse

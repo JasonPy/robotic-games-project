@@ -7,6 +7,7 @@ import actionlib
 import rospkg
 
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
+from scripts.cheese import Cheese
 from enum import Enum
 
 catch_path = rospkg.RosPack().get_path('catch')
@@ -71,4 +72,9 @@ def get_cheese_positions(map_type: MapType) -> np.array:
         cheese_contour = np.load(filepath)
         cheese_contours.append(np.mean(cheese_contour, axis=0))
 
-    return np.array(cheese_contours)
+    cheese_array = []
+    for cheese in cheese_contours:
+        tmp = Cheese(cheese)
+        cheese_array.append(tmp)
+
+    return cheese_array
