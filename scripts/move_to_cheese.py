@@ -52,12 +52,15 @@ def move_to_cheese(target_position):
         return client.get_result()
 
 
-def get_cheese_positions(map_type: MapType) -> np.array:
-    """
-    load cheese contours for a specific map and return their center position
+def get_cheese_positions(map_type: MapType) -> list[Cheese]:
+    """Load cheese contours for a specific map and return their center position
 
-    :param map_type: the type of the current map
-    :return: an array containing x,y positions of all cheese
+    Args:
+        map_type (MapType): which of the maps is played
+
+    Return:
+        cheese_array (list[Cheese]): an array containing Cheese objects
+
     """
     ids = []
 

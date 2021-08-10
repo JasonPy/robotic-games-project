@@ -24,18 +24,19 @@ class Mouse:
 
         self.cheese_array = get_cheese_positions("MAP_2")
 
-        # get cheese position
-        # TODO: doesnt work!!
-        cheese_pos = rgt_helper.available_objects
-        print(f"av objs: {cheese_pos}")
-        # TODO: use rgt_helper.get_dist() to determine nearest cheese
-
         rospy.spin()
 
     def cheese_callback(self, data):
-        # TODO: get ie. nearest cheese position
-        x = data.pose.pose.position.x
-        y = data.pose.pose.position.y
+        # evaluate all cheese
+        for cheese in self.cheese_array:
+            cheese.evaluate(self.position, self.cat.position)
+
+        # sort array by score
+        self.cheese_array(key=lambda x: x.score, reverse=True)
+
+        # get coordinates of cheese with best evaluation score
+        x, y = self.cheese_array[0].position
+
         self.target_cheese = np.array([x, y])
         print(f"target cheese: {self.target_cheese}")
 
