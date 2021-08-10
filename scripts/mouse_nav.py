@@ -34,8 +34,6 @@ class Mouse:
 
     def cheese_callback(self, data):
         # TODO: get ie. nearest cheese position
-        for cheese in self.cheese_array:
-            cheese.evaluate(self.position, )
         x = data.pose.pose.position.x
         y = data.pose.pose.position.y
         self.target_cheese = np.array([x, y])

@@ -59,7 +59,6 @@ def get_cheese_positions(map_type: MapType) -> np.array:
     :param map_type: the type of the current map
     :return: an array containing x,y positions of all cheese
     """
-    cheese_contours = []
     ids = []
 
     if map_type == MapType.MAP_1:
@@ -67,14 +66,13 @@ def get_cheese_positions(map_type: MapType) -> np.array:
     if map_type == MapType.MAP_2:
         ids = [5, 6, 7, 8]
 
+    cheese_array = []
+    # cheese_contours = []
     for i in ids:
         filepath = os.path.join(catch_path, 'maps/cheese_' + str(i) + '.npy')
         cheese_contour = np.load(filepath)
-        cheese_contours.append(np.mean(cheese_contour, axis=0))
-
-    cheese_array = []
-    for cheese in cheese_contours:
-        tmp = Cheese(cheese)
+        # cheese_contours.append(np.mean(cheese_contour, axis=0))
+        tmp = Cheese(np.mean(cheese_contour, axis=0))
         cheese_array.append(tmp)
 
     return cheese_array
