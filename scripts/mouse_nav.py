@@ -44,9 +44,9 @@ class Mouse:
         self.ranges = np.array([])
 
         # TODO discretize decision space correctly/in such a way that it makes sense
-        self.strategy_choices_self = np.linspace(-0.8, 0.8, self.choices)  # discredited  decision space
-        self.strategy_choices_cat = np.linspace(-2.84, 2.84, self.choices)  # discredited  decision space
-        self.speed_cat = 0.4  # we don't know that
+        self.strategy_choices_self = np.linspace(-2.4, 2.4, self.choices)  # discredited  decision space
+        self.strategy_choices_cat = np.linspace(-2.0, 2.0, self.choices)  # discredited  decision space
+        self.speed_cat = 0.22  # we don't know that
 
         # callback for mouse and cat position
         rospy.Subscriber("mouse_obj/odom", Odometry, self.odom_mouse_callback)
