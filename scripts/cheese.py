@@ -11,7 +11,7 @@ class Cheese:
         self.position = position
         self.score = 0
 
-    def evaluate(self, mouse_position, cat_position):
+    def evaluate(self, mouse_position, cat_position, mouse_speed, cat_speed):
         """Evaluate Cheese based on mouse_position, cat_position
 
         Args:
@@ -31,5 +31,7 @@ class Cheese:
             / (2 * cat_proximity * mouse_proximity))
 
         # utility function to evaluate cheese
-        self.score = mouse_proximity * (
-            np.clip(cat_proximity / mouse_proximity, 0, 1) * (angle_mouse_cat / 180))
+        self.score = (np.clip(
+            (cat_proximity / cat_speed)
+            / (mouse_proximity / mouse_speed),
+            0, 1) * (angle_mouse_cat / 180))

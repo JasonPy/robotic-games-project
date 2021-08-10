@@ -17,7 +17,8 @@ class Mouse:
     def __init__(self):
         # x,y pos of target cheese and mouse
         self.target_cheese = 0
-        self.position = 0
+        self.position = np.array([0, 0])
+        self.speed = 0
 
         # callback for mouse position
         rospy.Subscriber("mouse_obj/odom", Odometry, self.mouse_callback)
@@ -29,7 +30,8 @@ class Mouse:
     def cheese_callback(self, data):
         # evaluate all cheese
         for cheese in self.cheese_array:
-            cheese.evaluate(self.position, self.cat.position)
+            cheese.evaluate(self.position, self.cat.position,
+                            self.speed, self.cat.speed)
 
         # sort array by score
         self.cheese_array(key=lambda x: x.score, reverse=True)
