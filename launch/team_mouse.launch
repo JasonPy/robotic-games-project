@@ -1,6 +1,9 @@
 <launch>
 
-<!-- start the navigation node-->
-<node pkg="mouse" name="mouse" type="mouse_nav.py" output="screen"/>
+    <!-- start the navigation node-->
+    <node pkg="mouse" name="mouse" type="mouse_nav.py" output="screen"/>
+
+    <!-- start the navigation -->
+    <include file="$(find mouse)/launch/navigation.launch"/>
 	
 </launch>
