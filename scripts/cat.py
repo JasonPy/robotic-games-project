@@ -1,6 +1,5 @@
 class Cat:
-    def __init__(self, cheese_array, cat_position):
-        self.position = cat_position
+    def __init__(self, cheese_array):
         self.cheese_array = cheese_array
         self.max_speed = 0
         self.max_angular = 0
