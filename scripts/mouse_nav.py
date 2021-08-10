@@ -181,17 +181,14 @@ class Mouse:
         :return: 0-1, 1 = 100% flee, 0 = 0% flee (so go to the cheese)
         """
 
-    # TODO
-    def cat_is_in_near_mouse(self):
+    def cat_is_in_near_mouse(self, threshold):
         """
-        This function checks if the cat is inside the mouse cell.
-        :return:
+        This function determines the distance between cat and mouse
+        and returns True if their distance is below some threshold.
+        :return: (bool) if cat is near mouse
         """
-        # replace that with more sophisticated approach
-        if np.sqrt((game_state[0] - game_state[3]) ** 2 + (game_state[1] - game_state[4]) ** 2) < 300:
-            return True
-
-        return False
+        distance = rgt_helper.dist("cat_obj", rgt_helper.get_pos("mouse_obj"))
+        return True if distance < threshold else False
 
     # TODO: update target_cheese?
     def odom_mouse_callback(self, data):

@@ -162,7 +162,18 @@ include_directories(
 catkin_install_python(PROGRAMS scripts/mouse_nav.py scripts/mouse_nav.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
-
+catkin_install_python(PROGRAMS scripts/gates.py scripts/gates.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+catkin_install_python(PROGRAMS scripts/minmax.py scripts/minmax.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+catkin_install_python(PROGRAMS scripts/util.py scripts/util.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+catkin_install_python(PROGRAMS scripts/collision_avoidance.py scripts/collision_avoidance.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 ## Mark executables for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html
 # install(TARGETS ${PROJECT_NAME}_node
