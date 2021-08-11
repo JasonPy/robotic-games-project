@@ -1,8 +1,9 @@
 #! /usr/bin/env python
 
+import copy
 import rospy
-import rogata_library.rogata_library as rgt
 import numpy as np
+import rogata_library.rogata_library as rgt
 
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
@@ -12,6 +13,8 @@ from tf.transformations import euler_from_quaternion
 import util
 import minmax
 import gates
+import cheese
+import move_to_cheese
 
 rgt_helper = rgt.rogata_helper()
 game_state = np.zeros(8)  # game_state is used for building the tree/minimax-algorithm
@@ -26,11 +29,10 @@ class Mouse:
         # positions of cheese objects (have to be initially loaded since cheese_obj only contains the mean
         # cheese coordinate)
         self.cheese_amount = 4
-        self.cheese_positions = np.zeros(shape=(self.cheese_amount, 2))
         # x,y pos of target cheese and mouse
         self.target_cheese = 0
-        self.position = np.zeros(2)
-        self.speed = 0.2  # have to determine that?
+        self.position = np.array([0, 0])
+        self.speed = 0.22
 
         # parameters for the tree planning
         self.choices = 3
@@ -43,11 +45,6 @@ class Mouse:
         self.omega_ca = 0
         self.angles = np.array([])
         self.ranges = np.array([])
-
-        # TODO discretize decision space correctly/in such a way that it makes sense
-        self.strategy_choices_self = np.linspace(-2.4, 2.4, self.choices)  # discredited  decision space
-        self.strategy_choices_cat = np.linspace(-2.0, 2.0, self.choices)  # discredited  decision space
-        self.speed_cat = 0.22  # we don't know that
 
         # callback for mouse and cat position
         rospy.Subscriber("mouse_obj/odom", Odometry, self.odom_mouse_callback)
@@ -63,7 +60,7 @@ class Mouse:
 
         while not rospy.is_shutdown():
 
-            if True: #self.cat_is_in_near_mouse(threshold=CAT_MOUSE_MAX_DIST):
+            if self.cat_is_in_near_mouse(threshold=CAT_MOUSE_MAX_DIST):
                 # if cat enters mouse cell -> flee using minimax-approach
                 # TODO discretize decision space correctly/in such a way that it makes sense
                 self.strategy_choices_self = np.linspace(-0.8, 0.8, self.choices)  # discredited  decision space
@@ -87,6 +84,7 @@ class Mouse:
                 print("go to the cheese")
                 # homing/navigation/collision avoidance
 
+        self.cheese_array = get_cheese_positions("MAP_1")
         # why are we using a loop instead of rospy.spin() -- what is that for?
         # rospy.spin() effectively goes into an infinite loop until it receives a shutdown signal (e.g. ctrl-c).
         # During that loop it will process any events that occur, such as data received on a topic or a timer
@@ -110,33 +108,20 @@ class Mouse:
 
         return self.strategy_choices_self[int(best_choice[7] - 1)]
 
-    # TODO: update the target cheese position (nearest cheese for example)
-    def update_target_cheese(self):
-        """
-        This function reevaluates the cheese the mouse is trying to navigate to and updates the variable target_cheese.
-        This function is called whenever the mouse needs to decide its next move.
-        """
-        # TODO: use rgt_helper.get_dist() to determine nearest cheese
-        cheese_scores = np.zeros(self.cheese_amount)
+    def cheese_callback(self, data):
+        # evaluate all cheese
+        for cheese in self.cheese_array:
+            cheese.evaluate(self.position, self.cat.position,
+                            self.speed, self.cat.speed)
 
-        for j in range(self.cheese_positions.shape[0]):
-            # determine the current score for every cheese
-            cheese_scores[j] = self.get_cheese_score(self.cheese_positions[j, :])
+        # sort array by score
+        self.cheese_array(key=lambda x: x.score, reverse=True)
 
-        # update target_cheese
-        self.target_cheese = self.cheese_positions[np.argmax(cheese_scores), :]
+        # get coordinates of cheese with best evaluation score
+        x, y = self.cheese_array[0].position
+
+        self.target_cheese = np.array([x, y])
         print(f"target cheese: {self.target_cheese}")
-
-    # TODO
-    def get_cheese_score(self, cheese_pos):
-        """
-        This function determines the score of a cheese dependent on certain criteria.
-        :param cheese_pos: coordinates of the cheese
-        :return: score of the cheese
-        """
-        score = 0
-
-        return score
 
     # TODO
     def get_flee_from_cat_score(self):
