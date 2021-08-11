@@ -1,19 +1,17 @@
-#! /usr/bin/env python3
-# license removed for brevity
+#! /usr/bin/env python
 
 import rospy
-import numpy as np
-import copy
 import rogata_library.rogata_library as rgt
+import numpy as np
 
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import LaserScan
 from tf.transformations import euler_from_quaternion
 
-from util import *
-from minmax import *
-from gates import *
+import util
+import minmax
+import gates
 
 rgt_helper = rgt.rogata_helper()
 game_state = np.zeros(8)  # game_state is used for building the tree/minimax-algorithm
@@ -65,7 +63,7 @@ class Mouse:
 
         while not rospy.is_shutdown():
 
-            if self.cat_is_in_near_mouse(threshold=CAT_MOUSE_MAX_DIST):
+            if True: #self.cat_is_in_near_mouse(threshold=CAT_MOUSE_MAX_DIST):
                 # if cat enters mouse cell -> flee using minimax-approach
                 # TODO discretize decision space correctly/in such a way that it makes sense
                 self.strategy_choices_self = np.linspace(-0.8, 0.8, self.choices)  # discredited  decision space
