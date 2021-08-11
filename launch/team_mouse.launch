@@ -1,9 +1,10 @@
 <launch>
 
-    <!-- start the navigation node-->
-    <node pkg="mouse" name="mouse" type="mouse_nav.py" output="screen"/>
+<!-- start the navigation node-->
+<node pkg="mouse" name="mouse" type="mouse_nav.py" output="screen"/>
 
-    <!-- start the navigation -->
-    <include file="$(find mouse)/launch/navigation.launch"/>
+<!-- start collision avoidance, but publish to topic ca_cmd_vel -->
+<remap from="mouse/cmd_vel" to="mouse/ca_cmd_vel" />
+<node name="collision_avoidance" pkg="mouse" type="collision_avoidance.py" />
 	
 </launch>

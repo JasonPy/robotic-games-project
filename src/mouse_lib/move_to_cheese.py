@@ -7,7 +7,7 @@ import actionlib
 import rospkg
 
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
-from scripts.cheese import Cheese
+from src.mouse_lib.cheese import Cheese
 from enum import Enum
 
 catch_path = rospkg.RosPack().get_path('catch')
