@@ -7,6 +7,7 @@ import actionlib
 import rospkg
 
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
+from scripts.cheese import Cheese
 from enum import Enum
 
 catch_path = rospkg.RosPack().get_path('catch')
@@ -51,14 +52,16 @@ def move_to_cheese(target_position):
         return client.get_result()
 
 
-def get_cheese_positions(map_type: MapType) -> np.array:
-    """
-    load cheese contours for a specific map and return their center position
+def get_cheese_positions(map_type: MapType) -> list[Cheese]:
+    """Load cheese contours for a specific map and return their center position
 
-    :param map_type: the type of the current map
-    :return: an array containing x,y positions of all cheese
+    Args:
+        map_type (MapType): which of the maps is played
+
+    Return:
+        cheese_array (list[Cheese]): an array containing Cheese objects
+
     """
-    cheese_contours = []
     ids = []
 
     if map_type == MapType.MAP_1:
@@ -66,9 +69,13 @@ def get_cheese_positions(map_type: MapType) -> np.array:
     if map_type == MapType.MAP_2:
         ids = [5, 6, 7, 8]
 
+    cheese_array = []
+    # cheese_contours = []
     for i in ids:
         filepath = os.path.join(catch_path, 'maps/cheese_' + str(i) + '.npy')
         cheese_contour = np.load(filepath)
-        cheese_contours.append(np.mean(cheese_contour, axis=0))
+        # cheese_contours.append(np.mean(cheese_contour, axis=0))
+        tmp = Cheese(np.mean(cheese_contour, axis=0))
+        cheese_array.append(tmp)
 
-    return np.array(cheese_contours)
+    return cheese_array

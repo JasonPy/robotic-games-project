@@ -5,7 +5,9 @@ import rospy
 import numpy as np
 import rogata_library.rogata_library as rgt
 
+# from scripts.cheese import Cheese
 from nav_msgs.msg import Odometry
+from scripts.move_to_cheese import get_cheese_positions
 
 rgt_helper = rgt.rogata_helper()
 
@@ -15,23 +17,28 @@ class Mouse:
     def __init__(self):
         # x,y pos of target cheese and mouse
         self.target_cheese = 0
-        self.position = 0
+        self.position = np.array([0, 0])
+        self.speed = 0
 
         # callback for mouse position
         rospy.Subscriber("mouse_obj/odom", Odometry, self.mouse_callback)
 
-        # get cheese position
-        # TODO: doesnt work!!
-        cheese_pos = rgt_helper.available_objects
-        print(f"av objs: {cheese_pos}")
-        # TODO: use rgt_helper.get_dist() to determine nearest cheese
+        self.cheese_array = get_cheese_positions("MAP_2")
 
         rospy.spin()
 
     def cheese_callback(self, data):
-        # TODO: get ie. nearest cheese position
-        x = data.pose.pose.position.x
-        y = data.pose.pose.position.y
+        # evaluate all cheese
+        for cheese in self.cheese_array:
+            cheese.evaluate(self.position, self.cat.position,
+                            self.speed, self.cat.speed)
+
+        # sort array by score
+        self.cheese_array(key=lambda x: x.score, reverse=True)
+
+        # get coordinates of cheese with best evaluation score
+        x, y = self.cheese_array[0].position
+
         self.target_cheese = np.array([x, y])
         print(f"target cheese: {self.target_cheese}")
 
