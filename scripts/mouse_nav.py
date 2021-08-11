@@ -10,12 +10,6 @@ from nav_msgs.msg import Odometry
 from sensor_msgs.msg import LaserScan
 from tf.transformations import euler_from_quaternion
 
-import util
-import minmax
-import gates
-import cheese
-import move_to_cheese
-
 rgt_helper = rgt.rogata_helper()
 game_state = np.zeros(8)  # game_state is used for building the tree/minimax-algorithm
 
