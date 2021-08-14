@@ -14,6 +14,7 @@ from tf.transformations import euler_from_quaternion
 import util
 import minmax
 import gates
+import cat
 
 rgt_helper = rgt.rogata_helper()
 game_state = np.zeros(8)  # game_state is used for building the tree/minimax-algorithm
@@ -33,6 +34,9 @@ class Mouse:
         self.position = np.array([0, 0])
         self.speed = 0.18 + random.uniform(0, 0.4)
         self.angular_speed = 2 + random.uniform(-0.4, 0.4)
+
+        # cat
+        self.cat = Cat(self.cheese_array)
 
         # parameters for the tree planning
         self.choices = 3
@@ -172,6 +176,7 @@ class Mouse:
         game_state[4] = y_pos
         game_state[5] = orientation
         # self.update_target_cheese() ?
+        self.cat.update(np.array([x_pos, y_pos, orientation]))  # update cat
 
     def ca_cmd_vel_callback(self, msg):  # new command from collision avoidance node
         self.omega_ca = msg.angular.z
