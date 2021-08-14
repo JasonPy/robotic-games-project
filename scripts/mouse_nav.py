@@ -3,6 +3,7 @@
 import copy
 import rospy
 import numpy as np
+import random
 import rogata_library.rogata_library as rgt
 
 from geometry_msgs.msg import Twist
@@ -30,7 +31,8 @@ class Mouse:
         # x,y pos of target cheese and mouse
         self.target_cheese = 0
         self.position = np.array([0, 0])
-        self.speed = 0.22
+        self.speed = 0.18 + random.uniform(0, 0.4)
+        self.angular_speed = 2 + random.uniform(-0.4, 0.4)
 
         # parameters for the tree planning
         self.choices = 3
@@ -61,8 +63,9 @@ class Mouse:
             if self.cat_is_in_near_mouse(threshold=CAT_MOUSE_MAX_DIST):
                 # if cat enters mouse cell -> flee using minimax-approach
                 # TODO discretize decision space correctly/in such a way that it makes sense
-                self.strategy_choices_self = np.linspace(-0.8, 0.8, self.choices)  # discredited  decision space
-                self.strategy_choices_cat = np.linspace(-2.84, 2.84, self.choices)  # discredited  decision space
+                # discretized decision spaces to build the tree
+                self.strategy_choices_self = np.linspace(-self.angular_speed, self.angular_speed, self.choices)
+                self.strategy_choices_cat = np.linspace(-2.84, 2.84, self.choices)
                 self.speed_cat = 0.4  # we don't know that
 
                 omega_minimax = self.get_minimax_omega()
