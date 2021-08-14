@@ -4,7 +4,7 @@ import numpy as np
 class Cat:
     def __init__(self, cheese_array):
         self.cheese_array = cheese_array
-        self.position = np.zeros(2)
+        self.position = np.zeros(3)
         self.max_speed = 0.3  # smallest possible value = 0.2, highest possible value 0.4
         self.max_angular = 1  # smallest possible value = -2, highest possible value 2
 
@@ -29,6 +29,9 @@ class Cat:
         :param new_position: current position of the cat
         """
         velocities = np.zeros(2)
+        dt = 1
+        velocities[0] = (new_position - self.position[0])/(dt * np.cos(self.position[2]))
+        velocities[1] = (new_position[2]-self.position[2])/dt
         return velocities
 
     def plan_movement(self):
