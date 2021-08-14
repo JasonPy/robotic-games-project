@@ -45,8 +45,9 @@ class Mouse:
         # game_state consists of
         # [x_cat, y_cat, rot_cat, x_mouse, y_mouse, rot_mouse, reward_for_player, pos_in_tree]
 
-        # attributes for collision avoidance
+        # attributes for collision avoidance and free space
         self.omega_ca = 0
+        self.omega_fs = 0
         self.angles = np.array([])
         self.ranges = np.array([])
 
@@ -55,6 +56,7 @@ class Mouse:
         rospy.Subscriber("cat_obj/odom", Odometry, self.odom_cat_callback)
         rospy.Subscriber("mouse/cmd_vel", Twist, self.cmd_vel_mouse_callback)  # fake subscriber
         rospy.Subscriber("mouse/ca_cmd_vel", Twist, self.ca_cmd_vel_callback)  # collision_avoidance
+        rospy.Subscriber("mouse/fs_cmd_vel", Twist, self.fs_cmd_vel_callback)  # collision_avoidance
         rospy.Subscriber("mouse/scan", LaserScan, self.scan_callback)
 
         # publisher for mouse velocities
@@ -75,7 +77,7 @@ class Mouse:
                 omega_minimax = self.get_minimax_omega()
 
                 # combine omega of minimax with collision avoidance
-                omega_combined = self.combine_minimax_and_ca(omega_minimax)
+                omega_combined = self.combine_omegas(omega_minimax)
                 output = Twist()
                 output.linear.x = self.speed  # fixed, we only consider the angular velocity
                 output.angular.z = omega_minimax
@@ -181,6 +183,9 @@ class Mouse:
     def ca_cmd_vel_callback(self, msg):  # new command from collision avoidance node
         self.omega_ca = msg.angular.z
 
+    def fs_cmd_vel_callback(self, msg):  # new command from free space node
+        self.omega_fs = msg.angular.z
+
     def cmd_vel_mouse_callback(self, data):
         """
         Fake callback
@@ -200,13 +205,13 @@ class Mouse:
         self.angles = angles[np.isfinite(ranges)]  # delete 'inf'
         self.ranges = ranges[np.isfinite(ranges)]
 
-    def combine_minimax_and_ca(self, omega_minimax):
-        # TODO: try 2nd variant with utility instead of prevail
+    def combine_omegas(self, omega_minimax):
         # normalize omegas to [-1, 1]
         norm_omega_ca = normalize(self.omega_ca)
+        norm_omega_fs = normalize(self.omega_fs)
         norm_omega_minimax = normalize(omega_minimax)
 
-        omega = PREVAIL(norm_omega_minimax, norm_omega_ca)
+        omega = PREVAIL(norm_omega_ca, PREVAIL(norm_omega_minimax, norm_omega_fs))
         return omega * np.pi  # get back angular vel [rad]
 
 

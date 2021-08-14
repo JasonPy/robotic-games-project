@@ -6,5 +6,9 @@
 <!-- start collision avoidance, but publish to topic ca_cmd_vel -->
 <remap from="mouse/cmd_vel" to="mouse/ca_cmd_vel" />
 <node name="collision_avoidance" pkg="mouse" type="collision_avoidance.py" />
+
+<!-- start free space, but publish to topic fs_cmd_vel -->
+<remap from="mouse/cmd_vel" to="mouse/fs_cmd_vel" />
+<node name="free_space" pkg="mouse" type="free_space.py" />
 	
 </launch>
