@@ -22,7 +22,7 @@ class Cheese:
         mouse_proximity = np.linalg.norm(self.position - mouse_position)
         cat_proximity = np.linalg.norm(self.position - cat_position)
 
-        # euclidian distance from cat to mouse
+        # euclidean distance from cat to mouse
         distance_mouse_cat = np.linalg.norm(mouse_position - cat_position)
 
         # angle between mouse and cat

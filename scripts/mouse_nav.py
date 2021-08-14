@@ -34,8 +34,9 @@ class Mouse:
         self.position = np.array([0, 0, 0])
         self.speed = 0.18 + random.uniform(0, 0.4)
         self.angular_speed = 2 + random.uniform(-0.4, 0.4)
+        self.cheese_array = get_cheese_positions("MAP_1")
 
-        # cat
+        # model of the cat
         self.cat = Cat(self.cheese_array)
 
         # parameters for the tree planning
@@ -68,30 +69,29 @@ class Mouse:
 
             if self.cat_is_in_near_mouse(threshold=CAT_MOUSE_MAX_DIST):
                 # if cat enters mouse cell -> flee using minimax-approach
-                # TODO discretize decision space correctly/in such a way that it makes sense
+
                 # discretized decision spaces to build the tree
                 self.strategy_choices_self = np.linspace(-self.angular_speed, self.angular_speed, self.choices)
-                self.strategy_choices_cat = np.linspace(-2.84, 2.84, self.choices)
+                self.strategy_choices_cat = np.linspace(-self.cat.max_angular, self.cat.max_angular, self.choices)
                 self.speed_cat = 0.4  # we don't know that
 
+                # omega obtained from minimax-algorithm
                 omega_minimax = self.get_minimax_omega()
 
                 # combine omega of minimax with collision avoidance
                 omega_combined = self.combine_omegas(omega_minimax)
+
                 output = Twist()
                 output.linear.x = self.speed  # fixed, we only consider the angular velocity
-                output.angular.z = omega_minimax
+                output.angular.z = omega_combined
                 self.pub.publish(output)
                 # TODO: try 2nd approach: integrate collision avoidance into minimax (pruning)
 
             else:
-                # determine next best move in the 'absence' of the cat -> optimal homing + collision avoidance,
-                # then: think of what the cat might be doing (while the cat is also thinking about what we might
-                # be doing)
+                # use SLAM to navigate to the current best cheese
                 print("go to the cheese")
-                # homing/navigation/collision avoidance
 
-        self.cheese_array = get_cheese_positions("MAP_1")
+
         # why are we using a loop instead of rospy.spin() -- what is that for?
         # rospy.spin() effectively goes into an infinite loop until it receives a shutdown signal (e.g. ctrl-c).
         # During that loop it will process any events that occur, such as data received on a topic or a timer
@@ -102,16 +102,11 @@ class Mouse:
     def get_minimax_omega(self):
         scoreTree = [None] * int((self.choices ** (self.depth + 1) - 1) / 2)  # create empty tree
         scoreTree[0] = copy.deepcopy(game_state)
-        # print(f"tree is being build with {int((self.choices ** (self.depth + 1) - 1) / 2)} nodes")
-        scoreTree = buildTree(0, scoreTree,
-                              self.depth)  # self.depth-1 instead of self.depth? don't think sp
-        # print(f"scoreTree is built: {scoreTree}")
-        best_choice = minimax(0, True, scoreTree, self.depth, self.choices)  # self.depth - 1? don't think so
-        # print(f"best choice before while loop {best_choice}")
+        scoreTree = buildTree(0, scoreTree, self.depth)
+        best_choice = minimax(0, True, scoreTree, self.depth, self.choices)
+
         while best_choice[7] > self.choices:
             best_choice[7] = int(best_choice[7] / self.choices)
-
-        # print (best_choice)
 
         return self.strategy_choices_self[int(best_choice[7] - 1)]
 
@@ -128,14 +123,6 @@ class Mouse:
         x, y = self.cheese_array[0].position
 
         self.target_cheese = np.array([x, y])
-        print(f"target cheese: {self.target_cheese}")
-
-    # TODO
-    def get_flee_from_cat_score(self):
-        """
-        Determine how urgent it is too flee from the cat.
-        :return: 0-1, 1 = 100% flee, 0 = 0% flee (so go to the cheese)
-        """
 
     def cat_is_in_near_mouse(self, threshold):
         """
