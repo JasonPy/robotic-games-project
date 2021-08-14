@@ -31,7 +31,7 @@ class Mouse:
         self.cheese_amount = 4
         # x,y pos of target cheese and mouse
         self.target_cheese = 0
-        self.position = np.array([0, 0])
+        self.position = np.array([0, 0, 0])
         self.speed = 0.18 + random.uniform(0, 0.4)
         self.angular_speed = 2 + random.uniform(-0.4, 0.4)
 
@@ -153,7 +153,7 @@ class Mouse:
         x_pos = data.pose.pose.position.x
         y_pos = data.pose.pose.position.y
 
-        self.position = np.array([x_pos, y_pos])
+        self.position = np.array([x_pos, y_pos, orientation])
         game_state[0] = x_pos
         game_state[1] = y_pos
         game_state[2] = orientation
