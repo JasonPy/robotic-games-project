@@ -4,7 +4,6 @@ import numpy as np
 
 
 def buildTree(self, nodeIndex, scoreTree, depth):
-    # TODO notes on testing: building works so far, update functions/reward etc have to be checked
     # a few explanations to how the tree is build/structured:
     # since we have n choices and a depth of m we have int((self.choices ** (self.depth + 1) - 1) / 2) nodes
     # every node consists of an np-array which has the same shape as the game_state
@@ -40,15 +39,13 @@ def buildTree(self, nodeIndex, scoreTree, depth):
             scoreTree[nodeIndex * self.choices + i + 1][6] = reward(scoreTree[nodeIndex * self.choices + i + 1],
                                                                     False)
             scoreTree[nodeIndex * self.choices + i + 1][7] = nodeIndex * self.choices + i + 1
-        # print ("i: ", i, " depth: ", depth, " pos: ", (nodeIndex*self.choices+i+1), " scoreTree: ", scoreTree)
+
         scoreTree = self.buildTree(nodeIndex * self.choices + i + 1, scoreTree, depth - 1)
     return scoreTree
 
 
 def minimax(nodeIndex, maximize, scoreTree, depth, choices):
     # base case : targetDepth reached
-
-    # print(f"Minimax called with nodeIndex {nodeIndex}, maximize = {maximize}, depth =  {depth} and 2 choices")
 
     if depth == 0:
         return scoreTree[nodeIndex]
